@@ -17,7 +17,6 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"github.com/gorilla/websocket"
 	"golang.org/x/sync/errgroup"
 )
@@ -173,7 +172,6 @@ func (g *Gateway) ListenAndServe(addr string) error {
 
 func (g *Gateway) Serve(listener net.Listener) error {
 	router := chi.NewRouter()
-	router.Use(middleware.Logger)
 	router.Post("/connections/{id}", g.handleCallback)
 	router.NotFound(g.handleWebsocket)
 
