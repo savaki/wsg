@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-chi/chi/middleware"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -172,6 +173,7 @@ func (g *Gateway) ListenAndServe(addr string) error {
 
 func (g *Gateway) Serve(listener net.Listener) error {
 	router := chi.NewRouter()
+	router.Use(middleware.Recoverer)
 	router.Post("/connections/{id}", g.handleCallback)
 	router.NotFound(g.handleWebsocket)
 
