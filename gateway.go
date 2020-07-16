@@ -34,9 +34,10 @@ type StopFunc func()
 type HandlerFunc func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error)
 
 type Gateway struct {
-	handle HandlerFunc
-	id     int64
-	debug  func(string, ...interface{})
+	handle     HandlerFunc
+	id         int64
+	debug      func(string, ...interface{})
+	middleware []func(http.Handler) http.Handler
 
 	mutex    sync.Mutex
 	listener net.Listener
@@ -47,9 +48,10 @@ type Gateway struct {
 func Wrap(handler HandlerFunc, opts ...Option) *Gateway {
 	options := buildOptions(opts...)
 	return &Gateway{
-		handle:  handler,
-		streams: map[string]chan []byte{},
-		debug:   options.debug,
+		handle:     handler,
+		streams:    map[string]chan []byte{},
+		debug:      options.debug,
+		middleware: options.middleware,
 	}
 }
 
@@ -174,6 +176,7 @@ func (g *Gateway) ListenAndServe(addr string) error {
 func (g *Gateway) Serve(listener net.Listener) error {
 	router := chi.NewRouter()
 	router.Use(middleware.Recoverer)
+	router.Use(g.middleware...)
 	router.Post("/connections/{id}", g.handleCallback)
 	router.NotFound(g.handleWebsocket)
 

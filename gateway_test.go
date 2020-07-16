@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-chi/chi/middleware"
 	"io"
 	"log"
 	"net/http"
@@ -143,9 +144,12 @@ func TestLive(t *testing.T) {
 		ch      = make(chan string, 8)
 		port    = getEnvOrElse("PORT", "3000")
 		mock    = Server(ch, port)
-		gateway = Wrap(mock, WithDebug(log.Printf))
-		uri     = fmt.Sprintf("ws://localhost:%v", port)
-		addr    = ":" + port
+		gateway = Wrap(mock,
+			WithDebug(log.Printf),
+			WithMiddleware(middleware.Logger),
+		)
+		uri  = fmt.Sprintf("ws://localhost:%v", port)
+		addr = ":" + port
 	)
 
 	go gateway.ListenAndServe(addr) // listen for callbacks
