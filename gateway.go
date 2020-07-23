@@ -27,7 +27,9 @@ const (
 	routeKeyDisconnect = "$disconnect"
 )
 
-var upgrader = websocket.Upgrader{} // use default options
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true }, // CheckOrigin allows all origins
+} // use default options
 
 type StopFunc func()
 
@@ -90,6 +92,7 @@ func (g *Gateway) handleCallback(w http.ResponseWriter, req *http.Request) {
 func (g *Gateway) handleWebsocket(w http.ResponseWriter, req *http.Request) {
 	conn, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
+		g.debug("failed to upgrade websocket conn: %v", err)
 		http.Error(w, fmt.Errorf("failed to upgrade http conn: %w", err).Error(), http.StatusInternalServerError)
 		return
 	}
