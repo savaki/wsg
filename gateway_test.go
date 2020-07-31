@@ -147,6 +147,7 @@ func TestLive(t *testing.T) {
 		gateway = Wrap(mock,
 			WithDebug(log.Printf),
 			WithMiddleware(middleware.Logger),
+			WithOnWrite(func(data []byte, err error) { fmt.Println(string(data), err) }),
 		)
 		uri  = fmt.Sprintf("ws://localhost:%v", port)
 		addr = ":" + port

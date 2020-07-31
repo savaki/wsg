@@ -9,6 +9,7 @@ type Options struct {
 	debug      func(format string, args ...interface{})
 	listener   net.Listener
 	middleware []func(h http.Handler) http.Handler
+	onWrite    []func([]byte, error)
 }
 
 type Option func(*Options)
@@ -33,5 +34,14 @@ func WithDebug(fn func(format string, args ...interface{})) Option {
 func WithMiddleware(middleware ...func(http.Handler) http.Handler) Option {
 	return func(o *Options) {
 		o.middleware = append(o.middleware, middleware...)
+	}
+}
+
+// WithOnWrite allows for custom callback when messages are written to sockets
+func WithOnWrite(callback func([]byte, error)) Option {
+	return func(o *Options) {
+		if callback != nil {
+			o.onWrite = append(o.onWrite, callback)
+		}
 	}
 }

@@ -36,10 +36,11 @@ type StopFunc func()
 type HandlerFunc func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error)
 
 type Gateway struct {
-	handle     HandlerFunc
-	id         int64
-	debug      func(string, ...interface{})
-	middleware []func(http.Handler) http.Handler
+	handle       HandlerFunc
+	id           int64
+	debug        func(string, ...interface{})
+	middleware   []func(http.Handler) http.Handler
+	onWriteFuncs []func([]byte, error)
 
 	mutex    sync.Mutex
 	listener net.Listener
@@ -50,10 +51,11 @@ type Gateway struct {
 func Wrap(handler HandlerFunc, opts ...Option) *Gateway {
 	options := buildOptions(opts...)
 	return &Gateway{
-		handle:     handler,
-		streams:    map[string]chan []byte{},
-		debug:      options.debug,
-		middleware: options.middleware,
+		handle:       handler,
+		streams:      map[string]chan []byte{},
+		debug:        options.debug,
+		middleware:   options.middleware,
+		onWriteFuncs: options.onWrite,
 	}
 }
 
@@ -151,13 +153,21 @@ func (g *Gateway) handleWebsocket(w http.ResponseWriter, req *http.Request) {
 
 			case v := <-ch:
 				if err := conn.WriteMessage(websocket.TextMessage, v); err != nil {
+					g.onWrite(v, err)
 					return fmt.Errorf("failed to write json to client: %w", err)
 				}
+				g.onWrite(v, nil)
 			}
 		}
 	})
 	if err := group.Wait(); err != nil {
 		g.debug(err.Error())
+	}
+}
+
+func (g *Gateway) onWrite(data []byte, err error) {
+	for _, fn := range g.onWriteFuncs {
+		fn(data, err)
 	}
 }
 
